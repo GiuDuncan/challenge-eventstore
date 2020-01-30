@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 import static org.junit.Assert.assertEquals;
+import org.junit.Assert;
 
 public class EventStoreTest {
     @Test
@@ -28,15 +29,71 @@ public class EventStoreTest {
     }
 
     @Test
-    public void queryTest1() throws Exception {
+    public void queryReturnsExpectedEventsInIterator() throws Exception {
         EventStoreClass store = defaultStore();
-        store.removeAll("typeB");
         EventIterator it = store.query("typeA", 12L, 35L);
-        
+
+        it.moveNext();
+        assertEquals(isEventEqual(it.current(), new Event("typeA", 20L)), true);
+        it.moveNext();
+        assertEquals(isEventEqual(it.current(), new Event("typeA", 30L)), true);
+        it.moveNext();
+        assertEquals(isEventEqual(it.current(), new Event("typeA", 32L)), true);
     }
 
     @Test
-    public void queryTestNoResultInTimePeriod() throws Exception {
+    public void queryIteratorMoveNextReturnsFalseWhenOver() throws Exception {
+        EventStoreClass store = defaultStore();
+        EventIterator it = store.query("typeA", 12L, 22L);
+
+        boolean start = it.moveNext();
+        assertEquals(start, true);
+        boolean end = it.moveNext();
+        assertEquals(end, false);
+    }
+
+    @Test
+    public void iteratorCurrentIllegalStateException() {
+        EventStoreClass store = defaultStore();
+        EventIterator it = store.query("typeA", 12L, 22L);
+
+        try {
+            it.current();
+            Assert.fail();
+        } catch (IllegalStateException e) {
+        }
+    }
+
+    @Test
+    public void iteratorRemoveIllegalStateException() {
+        EventStoreClass store = defaultStore();
+        EventIterator it = store.query("typeA", 12L, 22L);
+
+        try {
+            it.remove();
+            Assert.fail();
+        } catch (IllegalStateException e) {
+        }
+    }
+
+    @Test
+    public void queryIteratorRemovesValue() throws Exception {
+        EventStoreClass store = defaultStore();
+        EventIterator it = store.query("typeA", 12L, 35L);
+
+        it.moveNext();
+        it.remove();
+        ConcurrentSkipListSet<Event> events = store.events.get("typeA");
+        Iterator<Event> it2 = events.iterator();
+
+        assertEquals(isEventEqual(it2.next(), new Event("typeA", 10L)), true);
+        assertEquals(isEventEqual(it2.next(), new Event("typeA", 30L)), true);
+        assertEquals(isEventEqual(it2.next(), new Event("typeA", 32L)), true);
+        assertEquals(isEventEqual(it2.next(), new Event("typeA", 50L)), true);
+    }
+
+    @Test
+    public void queryNoResultInTimePeriod() throws Exception {
         EventStoreClass store = defaultStore();
         store.removeAll("typeB");
         EventIterator it = store.query("typeA", 0L, 5L);
@@ -53,6 +110,13 @@ public class EventStoreTest {
         store.insert(new Event("typeA", 20L));
         store.insert(new Event("typeB", 20L));
         return store;
+    }
+
+    private boolean isEventEqual(Event a, Event b){
+        if(a.timestamp() == b.timestamp() && a.type() == b.type()){
+            return true;
+        }
+            return false;
     }
 
     private static boolean isSorted(ConcurrentSkipListSet<Event> events,  Comparator<Event> comparator) {

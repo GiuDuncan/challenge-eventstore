@@ -42,6 +42,6 @@ public class EventIteratorClass implements EventIterator{
     }
 
     private boolean isIlegal(){
-        return current == null || !iterator.hasNext() || iterator == null;
+        return current == null || iterator == null;
     }
 }

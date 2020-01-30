@@ -1,7 +1,5 @@
 package net.intelie.challenges;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.NavigableSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
@@ -14,11 +12,10 @@ import java.util.concurrent.ConcurrentSkipListSet;
  *
  * Write tests;
  * Provide some evidence of thread-safety;
- * Justify design choices, arguing about costs and benefits involved. You may write those as comments inline or, if you wish, provide a separate document summarizing those choices;
+ * Justify design choices, arguing about costs and benefits involved.
+ * You may write those as comments inline or, if you wish, provide a separate document summarizing those choices;
  * Write all code and documentation in english.
  */
-
-
 
 public class EventStoreClass implements EventStore {
 
@@ -35,10 +32,8 @@ public class EventStoreClass implements EventStore {
      * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentHashMap.html">ConcurrentHashMap</a>
      *
      * All the events also must be stored in a concurrent structure, in this case I chose the ConcurrentSkipListSet
-     * as it has a constructor that specifies a comparator to order its elements.
+     * since this implementation provides expected average log(n) time cost for most operations.
      *
-     * As the elements are ordered by the timestamp, the query function needs to perform a binary search to
-     * get the set that has a timestamp between start and end time.
      * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentSkipListSet.html">ConcurrentSkipListSet</a>
      */
     ConcurrentHashMap<String, ConcurrentSkipListSet<Event>> events = new ConcurrentHashMap<>();
@@ -57,7 +52,6 @@ public class EventStoreClass implements EventStore {
             current.add(event);
             events.put(event.type(), current);
         }
-        //current.forEach(s -> System.out.println(s.timestamp())); // todo: remove
     }
 
     @Override
@@ -71,9 +65,8 @@ public class EventStoreClass implements EventStore {
     public EventIterator query(String type, long startTime, long endTime) {
 
         ConcurrentSkipListSet<Event> query_events = (ConcurrentSkipListSet<Event>)
-                events.get(type).subSet(new Event(type, startTime), true, new Event(type, endTime), false);
+                 events.get(type).subSet(new Event(type, startTime), true, new Event(type, endTime), false);
 
-        query_events.forEach(s -> System.out.println(s.timestamp())); // todo: remove
         return new EventIteratorClass(query_events);
     }
 }
